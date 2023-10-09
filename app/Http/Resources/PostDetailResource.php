@@ -17,6 +17,7 @@ class PostDetailResource extends JsonResource
         return [
             'id' => $this->id,
             'title' => $this->title,
+            'image' => $this->image,
             'news_content' => $this->news_content,
             'created_at' => date_format($this->created_at, "Y/m/d H:i:s"),
 
@@ -24,7 +25,16 @@ class PostDetailResource extends JsonResource
             // 'author' => $this->whenLoaded('writer')
 
             // langsung value
-            'author' => $this->writer->username
+            'author' => $this->writer->username,
+            'comments' => $this->whenLoaded('comments', function() {
+                return collect($this->comments)->each(function($comment) {
+                    $comment->commentator;
+                    return $comment;
+                });
+            }),
+            'comment_total' => $this->whenLoaded('comments', function(){
+                return $this->comments->count();
+            })
         ];
     }
 }

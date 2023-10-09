@@ -8,6 +8,7 @@ use App\Http\Resources\PostResource;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class PostController extends Controller
 {
@@ -23,7 +24,7 @@ class PostController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Data Berhasil Ditemukan!',
-            'data' => PostDetailResource::collection($post)
+            'data' => PostDetailResource::collection($post->loadMissing(['writer:id,username', 'comments:id,post_id,user_id,comments_content']))
         ]);
     }
 
@@ -40,10 +41,20 @@ class PostController extends Controller
             'news_content' => 'required',
         ]);
 
+        $image = null;
+        if($request->file){
+            $fileName = $this->generateRandomString();
+            $extension = $request->file->extension();
+            $image = $fileName. '.' .$extension;
+
+            Storage::putFileAs('image', $request->file, $image);
+        }
+
         $post = Post::create([
             'title' => $request->title,
             'news_content' => $request->news_content,
-            'author' => Auth::user()->id
+            'author' => Auth::user()->id,
+            'image' => $image
         ]);
 
         return response()->json([
@@ -70,7 +81,7 @@ class PostController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Data Berhasil Ditemukan!',
-            'data' => new PostDetailResource($post)
+            'data' => new PostDetailResource($post->loadMissing(['writer:id,username', 'comments:id,post_id,user_id,comments_content']))
         ]);
     }
 
@@ -117,5 +128,15 @@ class PostController extends Controller
             'status' => true,
             'message' => 'Data Berhasil dihapus!'
         ]);
+    }
+
+    function generateRandomString($length = 30) {
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $charactersLength = strlen($characters);
+        $randomString = '';
+        for ($i = 0; $i < $length; $i++) {
+            $randomString .= $characters[random_int(0, $charactersLength - 1)];
+        }
+        return $randomString;
     }
 }
